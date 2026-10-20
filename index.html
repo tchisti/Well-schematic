@@ -29,6 +29,31 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-b);line-heigh
 .ebtn:hover{border-color:var(--accent3);color:var(--accent3)}
 .ebtn.on{background:var(--accent3);color:var(--bg);border-color:var(--accent3)}
 
+/* ── TABS ── */
+.tabs{display:flex;align-items:center;gap:.25rem;padding:0 1.25rem;background:var(--bg);border-bottom:1px solid #1e3a3a;flex-shrink:0;flex-wrap:wrap}
+.tab{font-family:var(--font-d);font-size:.68rem;font-weight:600;padding:.5rem .75rem;border:none;border-bottom:2px solid transparent;background:transparent;color:var(--text-dim);cursor:pointer;transition:all .15s;margin-bottom:-1px}
+.tab:hover{color:var(--text)}
+.tab.on{color:var(--accent);border-bottom-color:var(--accent)}
+.tab span{font-weight:400;font-size:.58rem;color:var(--text-dim);margin-left:.35rem}
+.chips{display:flex;align-items:center;gap:.3rem;margin-left:auto;flex-wrap:wrap;padding:.3rem 0}
+.chip{font-family:var(--font-d);font-size:.58rem;font-weight:600;padding:.22rem .55rem;border:1px solid #1e3a3a;border-radius:999px;background:var(--surface);color:var(--text-dim);cursor:pointer;transition:all .15s;white-space:nowrap}
+.chip b{color:var(--text);font-weight:600;margin-right:.3rem}
+.chip:hover{border-color:var(--accent2);color:var(--text)}
+.chip.on{border-color:var(--accent2);background:#00b8ff1a;color:var(--accent2)}
+.chip.on b{color:var(--accent2)}
+
+/* ── WELL RECORD ── */
+.rr{display:flex;justify-content:space-between;gap:.5rem;padding:.2rem 0;border-bottom:1px solid #152020;font-size:.66rem}
+.rr:last-child{border-bottom:none}
+.rr .rl{color:var(--text-dim);white-space:nowrap;flex-shrink:0}
+.rr .rv{color:var(--text);text-align:right}
+.dn-t{font-family:var(--font-d);font-size:.5rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent3);margin:.45rem 0 .2rem;padding-top:.3rem;border-top:1px solid #1a2e2e}
+.dn{list-style:none;display:flex;flex-direction:column;gap:.2rem}
+.dn li{font-size:.62rem;color:var(--text-dim);line-height:1.35;padding-left:.6rem;position:relative}
+.dn li::before{content:'';position:absolute;left:0;top:.45em;width:4px;height:4px;border-radius:50%;background:var(--accent3)}
+.leg-s.br{width:7px;height:11px;border:2px solid;border-right:none;border-radius:0;background:transparent;margin-right:6px}
+#wsbtns{display:flex;gap:.3rem}
+
 /* ── MAIN LAYOUT ── */
 .main{flex:1;display:grid;grid-template-columns:1fr 380px;gap:0;padding:0;overflow:hidden;min-height:0}
 
@@ -222,6 +247,12 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-b);line-heigh
   #ppnl{display:none!important}
   #dempty,#dcont{display:none!important}
   .pnl-t::after{display:none!important}
+  .tabs{display:none!important}
+  .rr .rl,.rr .rv{color:#000!important;font-size:7.5pt}
+  .rr{border-bottom-color:#eee!important}
+  .dn-t{color:#333!important;border-top-color:#ddd!important}
+  .dn li{color:#333!important;font-size:7pt}
+  .dn li::before{background:#333!important}
 }
 </style>
 </head>
@@ -243,6 +274,12 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-b);line-heigh
   </div>
 </header>
 
+<nav class="tabs" id="tabs">
+  <button class="tab on" id="tab-workspace" onclick="setTab('workspace')">Workspace</button>
+  <button class="tab" id="tab-legacy" onclick="setTab('legacy')">Legacy Wells<span>7 km POC AOR</span></button>
+  <div class="chips" id="chips"></div>
+</nav>
+
 <div class="main">
   <div class="svg-p">
     <div class="svg-box" id="svgbox">
@@ -261,6 +298,13 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-b);line-heigh
   </div>
 
   <div class="side" id="side">
+    <div class="pnl" id="rpnl" style="display:none">
+      <div class="pnl-t">Well Record <span class="hint" id="rhint"></span></div>
+      <div id="rrows"></div>
+      <div class="dn-t" id="dnt">Data notes</div>
+      <ul class="dn" id="dnotes"></ul>
+    </div>
+
     <div class="pnl"><div class="pnl-t">Legend</div><div id="leg"></div></div>
 
     <div class="pnl prop" id="ppnl">
@@ -286,11 +330,11 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-b);line-heigh
       <div class="pnl-t">Well Statistics</div>
       <div class="ws">
         <select id="wsel" onchange="loadWell(this.value)"></select>
-        <button onclick="addWell()">+ New</button>
-        <button class="bd" onclick="delWell()">Del</button>
+        <span id="wsbtns"><button onclick="addWell()">+ New</button><button class="bd" onclick="delWell()">Del</button></span>
+        <button id="cpbtn" style="display:none" onclick="copyToWorkspace()" title="Clone this legacy well into the editable workspace">⧉ Copy to Workspace</button>
       </div>
       <div id="stats"></div>
-      <div class="shint">Values editable · auto-saves</div>
+      <div class="shint" id="shint">Values editable · auto-saves</div>
     </div>
 
     <div class="pnl">
@@ -322,7 +366,119 @@ casings:[{name:"Surface Casing",od:'244.5mm (9⅝")',grade:"J55",weight:"53.6 kg
 plugs:[{id:1,top:201.2,bottom:170.7,sacks:65,additive:"2% CaCl₂",notes:"Felt plug at 201m"},{id:2,top:450,bottom:420.5,sacks:50,additive:"None",notes:"Cement tagged"},{id:3,top:680,bottom:640,sacks:70,additive:"2% NaCl",notes:""},{id:4,top:945,bottom:910,sacks:55,additive:"1% CaCl₂",notes:"CIBP set"}],
 bridgePlugs:[{depth:1050,type:"Cast Iron"}],packers:[{depth:1070,type:"Production Packer"}],
 formations:[{name:"Surface Gravel",depth:15},{name:"Milk River",depth:210},{name:"Colorado Group",depth:350},{name:"Blackstone",depth:480},{name:"Second White Specks",depth:560},{name:"Nisku",depth:720},{name:"Base Belly River",depth:870},{name:"Viking",depth:950},{name:"Mannville",depth:1060},{name:"Total Depth",depth:1115.6}],
-perforations:[{top:1065,bottom:1085},{top:1095,bottom:1110}],openHole:{top:1095,bottom:1115.6},notes:[]};
+perforations:[{top:1065,bottom:1085},{top:1095,bottom:1110}],dsts:[],openHole:{top:1095,bottom:1115.6},notes:[]};
+
+// ═══════════════════════════════════════
+// LEGACY WELLS — 7 km POC AOR (built-in dataset)
+// Source: "Legacy Wells 7kms POC AOR.pdf" (extracted historical well-file records).
+// Source depths are feet unless noted; ft() converts to the engine's metre storage.
+// Engine conventions: plugs use top = base (deeper) and bottom = top (shallower);
+// perforations and DSTs use top = shallower, bottom = deeper.
+// ═══════════════════════════════════════
+const M2F=3.28084;
+const ft=x=>+(x/M2F).toFixed(2);
+const SRC="Legacy Wells 7kms POC AOR.pdf";
+const LEGACY_WELLS=[
+{wellId:"LW1",wellName:"00/01-14-056-23W4",operator:"Harry Bass Oil Co. → Comstate Resources Ltd.",unitHint:'ft',totalDepth:ft(3705),kbElevation:null,
+ record:[["UWI","00/01-14-056-23W4M"],["Licence","11406"],["Field","Gibbons"],["Original operator","Harry Bass Oil Company"],["Abandoned by","Comstate Resources Ltd., 1996-07-04"],["Spud","1956-05-30"],["Status","Abandoned (suspended Viking gas well 1956–1996)"],["Source",SRC+" · Legacy well 1"]],
+ casings:[
+  {name:"Surface Casing",od:'9⅝"',grade:"n/r",weight:"n/r",top:0,shoe:ft(605),cementTop:0,cement:"150 sks + 12 gel"},
+  {name:"Production Casing",od:'5½"',grade:"n/r",weight:"n/r",top:0,shoe:ft(2569),cementTop:ft(2100),cementEst:true,cement:"101 sks · TOC not recorded (≈2100 ft estimated)"}],
+ plugs:[
+  {id:1,top:ft(3705),bottom:ft(3625),sacks:45,additive:"None",date:"1956-06-21",notes:"Open-hole plug #1, set 1956-06-21 before plug-back to 2569 ft."},
+  {id:2,top:ft(3415),bottom:ft(3315),sacks:75,additive:"None",date:"1956-06-21",notes:"Open-hole plug #2; felt at 3312 ft. One daily report records 35 sacks, the summary 75."},
+  {id:3,top:752,bottom:744,sacks:null,additive:"Dump-bailed",date:"1996-07-04",notes:"8 m cement dump-bailed on the bridge plug at 752 mKB (metres as recorded)."}],
+ bridgePlugs:[{depth:752,type:"Bridge plug · pressure tested 14 MPa (1996)"}],
+ packers:[],
+ perforations:[{top:ft(2489),bottom:ft(2493),notes:"1972 · 4 shots/ft · acidized; flowed 500 → 250 psi"}],
+ dsts:[
+  {id:1,top:ft(2498),bottom:ft(2559),recovery:"15 ft mud"},
+  {id:2,top:ft(3100),bottom:ft(3130),recovery:"210 ft salty water"},
+  {id:4,top:ft(3651),bottom:ft(3705),recovery:"630 ft sulphurous salt water"},
+  {id:5,top:ft(2459),bottom:ft(2566),recovery:"420 ft mud"}],
+ formations:[],
+ surfaceCut:{depth:1,label:"Casing cut 1 m BGL · 2 sks cement · plate welded (1996)"},
+ dataNotes:[
+  "Total depth 3705 ft is inferred from DST #4 and plug #1; no explicit TD is recorded.",
+  "Production casing TOC is not recorded; drawn at ≈2100 ft, estimated from 101 sacks in an assumed 8¾ in hole. Treat as unverified.",
+  "Surface casing cement (150 sks + 12 gel) assumed circulated to surface.",
+  "DST #3 (400 ft sulphur salt water) has no recorded interval and is not drawn.",
+  "1996 abandonment depths (752 mKB bridge plug, 8 m cement) are metric in the source; all other depths are feet.",
+  "No formation tops recorded; the well is described as a Viking gas well.",
+  "KB elevation not recorded."]},
+
+{wellId:"LW2",wellName:"10-33-055-23W4",operator:"Imperial Oil Limited",unitHint:'ft',totalDepth:ft(5100),kbElevation:null,
+ record:[["Location","LSD 10, Sec 33, Twp 55, Rge 23, W4M"],["Operator","Imperial Oil Limited"],["Spud","1953-12-17"],["Abandoned","1954-01-30 (rig released); dry hole after logging at TD 5100 ft"],["Status","Abandoned"],["Source",SRC+" · Legacy well 2"]],
+ casings:[{name:"Surface Casing",od:'10¾"',grade:"n/r",weight:"32.75 lb/ft",top:0,shoe:ft(612.2),cementTop:0,cement:"280 sks + 2% CaCl₂ (Dowell) · plug at 582 ft, shoe 610 ft"}],
+ plugs:[
+  {id:1,top:ft(5100),bottom:ft(5020),sacks:28,additive:"None",date:"1954-01-28",notes:"Plug down 3:00 AM Jan 28/54."},
+  {id:2,top:ft(3980),bottom:ft(3750),sacks:120,additive:"2% CaCl₂",date:"1954-01-28",notes:"Top felt at 3735 ft. Daily report gives 3980–3750 ft; the cementing summary gives 3780–3750 ft."},
+  {id:3,top:ft(3390),bottom:ft(3290),sacks:50,additive:"2% CaCl₂",date:"1954-01-28",notes:"Top felt at 3285 ft."},
+  {id:4,top:ft(2800),bottom:ft(2600),sacks:100,additive:"2% CaCl₂",date:"1954-01-29",notes:"Top felt at 2590 ft."},
+  {id:5,top:ft(660),bottom:ft(530),sacks:130,additive:"2% CaCl₂",date:"1954-01-29",notes:"55 sks (top found 635 ft) plus 75 sks on top; final top found at 530 ft."}],
+ bridgePlugs:[],packers:[],perforations:[],
+ dsts:[
+  {id:1,top:ft(990),bottom:ft(1095),recovery:"180 ft mud",notes:"7⅞ in packer, McCullough jars; packer failed, re-set once. Valve open 30 min."},
+  {id:2,top:ft(2587),bottom:ft(2650),recovery:"990 ft mud · gas to surface, max 1930 MCF/d",notes:"V.O. 3:22–4:22. Packer failed after 57 min, lost 200 ft mud. HP 1387, FP 517 psi."},
+  {id:3,top:ft(2650),bottom:ft(2657),recovery:"280 ft salt water · gas 1450 MCF/d",notes:"Gas to surface in 1 min. HP 1390, FP 770, SIP 810 psi (15 min)."},
+  {id:4,top:ft(2667),bottom:ft(2724),recovery:"250–270 ft salt water · gas 2500–2800 MCF/d",notes:"Gas in 1 min; salt water to surface in 20–25 min."},
+  {id:5,top:ft(2655.5),bottom:ft(2667),recovery:"1620 ft salt water",notes:"7¾ in straddle packers. Strong air blow decreasing."},
+  {id:6,top:ft(3171),bottom:ft(3211),recovery:"150 ft slightly salty oil-flecked mud",notes:"V.O. 60 min."},
+  {id:7,top:ft(3208),bottom:ft(3228),recovery:"900 ft salt water",notes:"Fair air blow."},
+  {id:8,top:ft(3325),bottom:ft(3345),recovery:"1060 ft salt water + 30 ft mud",notes:"Fair air blow decreasing to weak."},
+  {id:9,top:ft(3610),bottom:ft(3670),recovery:"2070 ft salt sulphur water",notes:"Strong air blow."},
+  {id:10,top:ft(3780),bottom:ft(3810),recovery:"850 ft black sulphur salt water + 30 ft mud",notes:"5½ in packer. Faint air blow throughout."},
+  {id:11,top:ft(4690),bottom:ft(4780),recovery:"630 ft salty sulphur water",notes:"Faint air blow."},
+  {id:12,top:ft(4742),bottom:ft(4812),recovery:"1440 ft salty sulphurous water",notes:"Recorded as DST #11 (duplicate number) in the source. HP 2350, FP 420, SIP 1455 psi. Good initial puff, dying slightly."}],
+ formations:[{name:"D-2",depth:ft(3810)},{name:"Cooking Lake",depth:ft(4670)}],
+ surfaceCut:{depth:ft(3),label:"Capped 3 ft BGL · 5 sks cement · plate welded (1954)"},
+ dataNotes:[
+  "All depths are feet KB as recorded.",
+  "Plug #2 interval conflicts between the daily report (3980–3750 ft) and the cementing summary (3780–3750 ft); the daily report is drawn.",
+  "Plug #5 combines the original 55 sks (top 635 ft) and the 75-sk top-up (top 530 ft).",
+  "Two tests are numbered DST #11 in the source; the deeper one (4742–4812 ft) is shown as #12.",
+  "D-2 is the operator's zone name as recorded (Nisku equivalent).",
+  "Rat hole and mouse hole plugged with 2 sks each, 3 ft below ground.",
+  "KB elevation not recorded."]},
+
+{wellId:"LW3",wellName:"100/05-03-056-23W4",operator:"Wilshire Oil of Canada Ltd.",unitHint:'ft',totalDepth:ft(4800),kbElevation:ft(2200),
+ record:[["UWI","100/05-03-056-23W4"],["Operator","Wilshire Oil of Can. Ltd."],["Spud","1977-11-10"],["KB","2200 ft (as recorded)"],["Abandonment","Approved by ERCB 1977-11-24 (J.R. Nichol); rig released 1977-11-26"],["Status","Abandoned"],["Source",SRC+" · Legacy well 3"]],
+ casings:[{name:"Surface Casing",od:'8⅝"',grade:"J-55 (IPSCO)",weight:"n/r",top:0,shoe:ft(632),cementTop:0,cement:"400 sks + 2% CaCl₂ · 23 bbl returns to surface"}],
+ plugs:[
+  {id:1,top:ft(4800),bottom:ft(4610),sacks:75,additive:"None",date:"1977-11",notes:"No feel required."},
+  {id:2,top:ft(3785),bottom:ft(3560),sacks:105,additive:"None",date:"1977-11",notes:"Plug felt."},
+  {id:3,top:ft(3350),bottom:ft(3170),sacks:100,additive:"None",date:"1977-11",notes:"Plug felt."},
+  {id:4,top:ft(2790),bottom:ft(2550),sacks:140,additive:"None",date:"1977-11",notes:"Plug felt."},
+  {id:5,top:ft(685),bottom:ft(585),sacks:60,additive:"None",date:"1977-11",notes:"Plug felt."}],
+ bridgePlugs:[],packers:[],perforations:[],
+ dsts:[
+  {id:1,top:ft(2606),bottom:ft(2626),recovery:"No gas to surface",notes:"V.O. 32 min; weak air blow."},
+  {id:2,top:ft(2632),bottom:ft(2652),recovery:"No gas to surface",notes:"V.O. 30 min; weak air blow."},
+  {id:3,top:ft(2665),bottom:ft(2685),recovery:"No gas to surface",notes:"V.O. 50 min; weak air blow increasing to fair."},
+  {id:4,top:ft(3224),bottom:ft(3244),recovery:"45 ft gas-cut watery mud + 500 ft gas-cut muddy salt water",notes:"V.O. 30 min, SI 45 min; weak to fair air blow; no gas to surface."}],
+ formations:[{name:"Base Belly River",depth:ft(1080)},{name:"1st White Specks",depth:ft(1613)},{name:"2nd White Specks",depth:ft(2179)},{name:"Base Fish Scales",depth:ft(2405)},{name:"Viking",depth:ft(2604)},{name:"Blairmore",depth:ft(2749)},{name:"Glauconitic",depth:ft(3228)},{name:"Ostracod",depth:ft(3255)},{name:"Basal Quartz",depth:ft(3302)},{name:"Wabamun",depth:ft(3610)},{name:"Calmar",depth:ft(3680)},{name:"Nisku",depth:ft(3735)},{name:"Ireton",depth:ft(3908)},{name:"Duvernay",depth:ft(4532)},{name:"Cooking Lake",depth:ft(4667)}],
+ surfaceCut:{depth:ft(3),label:"Casing cut 3 ft BGL · 5 sks cement · plate welded"},
+ dataNotes:[
+  "All depths are feet as recorded. Plug intervals are drawn as set; no tagged tops are recorded.",
+  "Formation names are expanded from the log abbreviations (BS BELLY R, 1st/2nd WH SP, BS FISH SC, GLAUC, BSL QTZ, WAB, CKNG LK).",
+  "Casing weight not recorded; 14 joints = 632.35 ft.",
+  "Rat hole and mouse hole plugged."]},
+
+{wellId:"LW4",wellName:"100/07-18-056-22W4",operator:"King-Stevenson Gas and Oil Company",unitHint:'ft',totalDepth:ft(3700),kbElevation:null,
+ record:[["UWI","100/07-18-056-22W4"],["Field","Gibbons"],["Operator","King-Stevenson Gas and Oil Company"],["Spud","1964-08-16"],["Abandoned","1964-08-23 at TD after packer test; rig released 1964-08-25"],["Status","Abandoned"],["Source",SRC+" · Legacy well 4"]],
+ casings:[{name:"Surface Casing",od:'n/r (24 lb/ft ⇒ likely 8⅝")',grade:"J-55 (Mannesmann)",weight:"24 lb/ft",top:0,shoe:ft(601.3),cementTop:0,cement:"300 sks + 2% CaCl₂ (1964-08-17) · 12¼ in hole"}],
+ plugs:[
+  {id:1,top:ft(3700),bottom:ft(3375),sacks:110,additive:"2% CaCl₂ (2nd stage)",date:"1964-08",notes:"Run in 2 stages; top found at 3366 ft."},
+  {id:2,top:ft(2570),bottom:ft(2375),sacks:130,additive:"2% CaCl₂",date:"1964-08",notes:""},
+  {id:3,top:ft(660),bottom:ft(560),sacks:50,additive:"2% CaCl₂",date:"1964-08-24",notes:"Plug down 4:15 PM Aug 24; top felt at 566 ft."}],
+ bridgePlugs:[],packers:[],perforations:[],dsts:[],formations:[],
+ dataNotes:[
+  "All depths are feet KB as recorded.",
+  "Surface casing OD is not recorded; 24 lb/ft J-55 is a standard 8⅝ in weight, so 8⅝ in is inferred. Tally 628.28 ft, set at 601.30 ft KB.",
+  "A packer test was run at TD on 1964-08-23 but no interval or recovery is recorded, so no DST is drawn.",
+  "No formation tops recorded. No surface cut-off or capping is recorded.",
+  "KB elevation not recorded."]}
+];
 
 // ═══════════════════════════════════════
 // STATE
@@ -335,7 +491,6 @@ let drag=null;
 // ═══════════════════════════════════════
 // CONVERSION
 // ═══════════════════════════════════════
-const M2F=3.28084;
 function fmt(m){return unit==='ft'?Math.round(m*M2F)+' ft':m.toFixed(1)+' m'}
 function fmtS(m){return unit==='ft'?Math.round(m*M2F):+m.toFixed(1)}
 
@@ -357,12 +512,36 @@ function el(t,a){const e=document.createElementNS('http://www.w3.org/2000/svg',t
 // ═══════════════════════════════════════
 // RENDER
 // ═══════════════════════════════════════
+const FD="'Space Grotesk',sans-serif",FB="'DM Sans',sans-serif";
+const LX=BCX-BW/2-14,RX=BCX+BW/2+18,FX=SW-22;
+let lbl={L:[],A:[],B:[]};
+function uN(){return unit==='m'?' m':' ft'}
+function trunc(t,n){t=String(t||'');return t.length>n?t.slice(0,n-1)+'…':t}
+// Labels are collected per column (L: left of bore, A: right of bore, B: far right)
+// and laid out at the end so overlapping blocks are pushed apart and get leader lines.
+function addLbl(col,y,lines,o){lbl[col].push(Object.assign({y,lines},o||{}))}
+function drawLbls(g){
+  const cfg={L:{x:LX,a:'end',lx:LX+4},A:{x:RX,a:'start',lx:RX-4},B:{x:FX,a:'end',lx:FX+3}};
+  for(const col of ['L','A','B']){
+    const c=cfg[col],items=lbl[col].sort((a,b)=>a.y-b.y);
+    let floor=-1e9;
+    items.forEach(it=>{it.h=it.lines.reduce((t,l)=>t+l.s*1.25,0);let top=it.y-it.h/2;if(top<floor)top=floor;it.top=top;floor=top+it.h+2});
+    items.forEach(it=>{
+      let yy=it.top;
+      it.lines.forEach(l=>{const t=el('text',{x:c.x,y:(yy+l.s*.95).toFixed(1),'text-anchor':c.a,fill:l.f,'font-size':l.s,'font-weight':l.w||'400','font-family':l.ff||FB});t.textContent=l.t;g.appendChild(t);yy+=l.s*1.25});
+      const cy=it.top+it.h/2;
+      if(it.leader!==undefined&&(it.always||Math.abs(cy-it.y)>2))g.appendChild(el('line',{x1:it.leader,y1:it.y,x2:c.lx,y2:cy,stroke:it.lc||'#3a5a5a','stroke-width':'.5','stroke-dasharray':'2,2'}));
+    });
+  }
+}
+
 function render(){
   const svg=document.getElementById('svg');
   const h=sh();
   svg.setAttribute('viewBox',`0 0 ${SW} ${h}`);
   svg.setAttribute('preserveAspectRatio','xMidYMin meet');
   svg.innerHTML='';
+  lbl={L:[],A:[],B:[]};
 
   // Defs
   const defs=el('defs',{});
@@ -373,6 +552,7 @@ function render(){
   svg.appendChild(defs);
 
   const g=el('g',{id:'mg',transform:`translate(${px},${py}) scale(${sc})`});
+  const iw=W.casings.length?(CW[W.casings.length-1]||24):BW; // innermost casing width
 
   // Axis
   if(!hid.has('axis')){
@@ -382,20 +562,19 @@ function render(){
     for(let d=0;d<=W.totalDepth;d+=ti){
       const y=d2y(d),mj=Math.abs(d%me)<.01||Math.abs(d%me-me)<.01;
       ag.appendChild(el('line',{x1:AX-(mj?8:4),y1:y,x2:AX,y2:y,stroke:mj?'#6a8a8a':'#3a5a5a','stroke-width':'1'}));
-      if(mj||d===0){const t=el('text',{x:AX-10,y:y+3,'text-anchor':'end',fill:'#8fa8a8','font-family':"'Space Grotesk',sans-serif",'font-size':'9'});t.textContent=fmtS(d);ag.appendChild(t)}
+      if(mj||d===0){const t=el('text',{x:AX-10,y:y+3,'text-anchor':'end',fill:'#8fa8a8','font-family':FD,'font-size':'9'});t.textContent=fmtS(d);ag.appendChild(t)}
     }
     g.appendChild(ag);
   }
 
-  // Open hole
+  // Open hole (below the deepest casing shoe)
   if(!hid.has('openHole')){
     const og=el('g',{});
-    const ot=W.casings.length>0?W.casings[W.casings.length-1].shoe:0;
-    og.appendChild(el('rect',{x:BCX-BW/2,y:d2y(ot),width:BW,height:d2y(W.totalDepth)-d2y(ot),fill:'url(#ohP)',stroke:'#5a4a18','stroke-width':'1',rx:'2'}));
-    const ohY1=d2y(ot),ohY2=d2y(W.totalDepth);
-    const ohMid=ohY1+(ohY2-ohY1)/2;
-    const ohLb=el('text',{x:BCX-BW/2-14,y:ohMid+3,'text-anchor':'end',fill:'#b88a10','font-size':'8','font-weight':'600','font-family':"'DM Sans',sans-serif"});ohLb.textContent='Open Hole';og.appendChild(ohLb);
-    const ohDt=el('text',{x:BCX-BW/2-14,y:ohMid+13,'text-anchor':'end',fill:'#8a6a10','font-size':'6.5','font-family':"'DM Sans',sans-serif"});ohDt.textContent=`${fmtS(W.totalDepth-ot)} ${unit==='m'?'m':'ft'}`;og.appendChild(ohDt);
+    const ot=W.casings.length>0?Math.max(...W.casings.map(c=>c.shoe)):0;
+    if(W.totalDepth>ot){
+      og.appendChild(el('rect',{x:BCX-BW/2,y:d2y(ot),width:BW,height:d2y(W.totalDepth)-d2y(ot),fill:'url(#ohP)',stroke:'#5a4a18','stroke-width':'1',rx:'2'}));
+      addLbl('L',d2y(ot)+11,[{t:'Open Hole',s:8,f:'#b88a10',w:'600'},{t:`${fmtS(W.totalDepth-ot)}${uN()} · ${fmtS(ot)}–${fmtS(W.totalDepth)}${uN()}`,s:6.5,f:'#8a6a10'}]);
+    }
     g.appendChild(og);
   }
 
@@ -408,29 +587,24 @@ function render(){
       if(edit){r.style.cursor='ns-resize'}
       cg.appendChild(r);
       cg.appendChild(el('rect',{x:BCX-w/2-2,y:y2-3,width:w+4,height:6,fill:'#8a9a9a',rx:'2'}));
-      const ly=y1+(y2-y1)/2;
-      const lb=el('text',{x:BCX-BW/2-14,y:ly-5,'text-anchor':'end',fill:'#8fa8a8','font-family':"'DM Sans',sans-serif",'font-size':'8'});
-      lb.textContent=c.name;cg.appendChild(lb);
-      const dt=el('text',{x:BCX-BW/2-14,y:ly+5,'text-anchor':'end',fill:'#6a8888','font-family':"'DM Sans',sans-serif",'font-size':'7'});
-      dt.textContent=`${c.od} · ${c.grade}`;cg.appendChild(dt);
-      // Leader line from label to casing
-      cg.appendChild(el('line',{x1:BCX-BW/2-10,y1:ly,x2:BCX-w/2-2,y2:ly,stroke:'#3a5a5a','stroke-width':'.5','stroke-dasharray':'2,2'}));
+      addLbl('L',y1+(y2-y1)/2,[{t:c.name,s:8,f:'#8fa8a8'},{t:`${c.od} · ${c.grade}`,s:7,f:'#6a8888'}],{leader:BCX-w/2-2,always:true});
     });
     g.appendChild(cg);
   }
 
-  // Cement
+  // Cement (dashed + lighter when the top of cement is an estimate)
   if(!hid.has('cement')){
     const cmg=el('g',{});
     W.casings.forEach((c,i)=>{
       const w=CW[i]||24,cw=BW/2-w/2;if(cw<=0)return;
-      const y1=d2y(c.cementTop),y2=d2y(c.shoe);
-      cmg.appendChild(el('rect',{x:BCX-BW/2,y:y1,width:cw,height:y2-y1,fill:'#4a9ebb',opacity:'.35',rx:'1'}));
-      cmg.appendChild(el('rect',{x:BCX+w/2,y:y1,width:cw,height:y2-y1,fill:'#4a9ebb',opacity:'.35',rx:'1'}));
+      const y1=d2y(c.cementTop),y2=d2y(c.shoe),est=!!c.cementEst;
+      const ra={fill:'#4a9ebb',opacity:est?'.2':'.35',rx:'1'};
+      if(est){ra.stroke='#4a9ebb';ra['stroke-width']='.6';ra['stroke-dasharray']='2,2'}
+      cmg.appendChild(el('rect',Object.assign({x:BCX-BW/2,y:y1,width:cw,height:y2-y1},ra)));
+      cmg.appendChild(el('rect',Object.assign({x:BCX+w/2,y:y1,width:cw,height:y2-y1},ra)));
       if(c.cementTop>0){
-        cmg.appendChild(el('line',{x1:BCX-BW/2,y1:y1,x2:BCX+BW/2,y2:y1,stroke:'#4a9ebb','stroke-width':'1','stroke-dasharray':'3,2'}));
-        const tl=el('text',{x:BCX-BW/2-14,y:y1+3,'text-anchor':'end',fill:'#4a9ebb','font-size':'7','font-family':"'DM Sans',sans-serif"});tl.textContent='TOC';cmg.appendChild(tl);
-        cmg.appendChild(el('line',{x1:BCX-BW/2-10,y1:y1,x2:BCX-BW/2-1,y2:y1,stroke:'#4a9ebb','stroke-width':'.5','stroke-dasharray':'2,2'}));
+        cmg.appendChild(el('line',{x1:BCX-BW/2,y1:y1,x2:BCX+BW/2,y2:y1,stroke:'#4a9ebb','stroke-width':'1','stroke-dasharray':est?'1,2':'3,2'}));
+        addLbl('L',y1,[{t:est?'TOC (est.)':'TOC',s:7,f:'#4a9ebb'}],{leader:BCX-BW/2-1,always:true,lc:'#4a9ebb'});
       }
     });
     g.appendChild(cmg);
@@ -447,10 +621,9 @@ function render(){
       pg.appendChild(r);
       const ls=Math.max(3,ph/6);for(let ly=yt+ls;ly<yb;ly+=ls)pg.appendChild(el('line',{x1:BCX-BW/2+6,y1:ly,x2:BCX+BW/2-6,y2:ly,stroke:'#4aba7a','stroke-width':'.5',opacity:'.5'}));
       const my=yt+ph/2;
-      const nm=el('text',{x:BCX,y:my+3,'text-anchor':'middle',fill:'#fff','font-family':"'Space Grotesk',sans-serif",'font-size':'9','font-weight':'700'});nm.textContent=`P${p.id}`;pg.appendChild(nm);
-      const lb=el('text',{x:BCX+BW/2+18,y:my-2,fill:'#4aba7a','font-family':"'Space Grotesk',sans-serif",'font-size':'8','font-weight':'700'});lb.textContent=`Plug ${p.id}`;pg.appendChild(lb);
-      const ld=el('text',{x:BCX+BW/2+18,y:my+9,fill:'#3a8a5a','font-size':'7','font-family':"'DM Sans',sans-serif"});ld.textContent=`${fmt(p.top)} – ${fmt(p.bottom)}`;pg.appendChild(ld);
-      const ls2=el('text',{x:BCX+BW/2+18,y:my+19,fill:'#2d6a4f','font-size':'6.5','font-family':"'DM Sans',sans-serif"});ls2.textContent=`${p.sacks} sacks · ${p.additive}`;pg.appendChild(ls2);
+      if(ph>=9){const nm=el('text',{x:BCX,y:my+3,'text-anchor':'middle',fill:'#fff','font-family':FD,'font-size':'9','font-weight':'700'});nm.textContent=`P${p.id}`;pg.appendChild(nm)}
+      const vol=[p.sacks?`${p.sacks} sacks`:'sacks n/r',p.additive&&p.additive!=='None'?p.additive:''].filter(Boolean).join(' · ');
+      addLbl('A',my,[{t:`Plug ${p.id}`,s:8,f:'#4aba7a',w:'700',ff:FD},{t:`${fmt(p.top)} – ${fmt(p.bottom)}`,s:7,f:'#3a8a5a'},{t:vol,s:6.5,f:'#2d6a4f'}],{leader:BCX+BW/2,lc:'#2d7a4f'});
     });
     g.appendChild(pg);
   }
@@ -463,8 +636,7 @@ function render(){
       const dm=el('polygon',{points:`${cx},${y-sz} ${cx+sz},${y} ${cx},${y+sz} ${cx-sz},${y}`,fill:'#cc6600',stroke:'#e68800','stroke-width':'1','data-t':'bridgePlug','data-i':String(i)});
       if(edit)dm.style.cursor='ns-resize';
       bg.appendChild(dm);
-      const lb=el('text',{x:cx+BW/2+18,y:y+3,fill:'#cc6600','font-size':'7.5','font-weight':'600','font-family':"'DM Sans',sans-serif"});
-      lb.textContent=`CIBP · ${fmt(bp.depth)}`;bg.appendChild(lb);
+      addLbl('A',y,[{t:`Bridge plug · ${fmt(bp.depth)}`,s:7.5,f:'#cc6600',w:'600'}],{leader:cx+sz,lc:'#cc6600'});
     });
     g.appendChild(bg);
   }
@@ -476,8 +648,7 @@ function render(){
       const y=d2y(p.depth),cx=BCX;
       pk.appendChild(el('polygon',{points:`${cx-8},${y-5} ${cx+8},${y-5} ${cx+3},${y} ${cx-3},${y}`,fill:'#6a5a8a',stroke:'#8a7aaa','stroke-width':'1','data-t':'packer','data-i':String(i)}));
       pk.appendChild(el('polygon',{points:`${cx-3},${y} ${cx+3},${y} ${cx+8},${y+5} ${cx-8},${y+5}`,fill:'#6a5a8a',stroke:'#8a7aaa','stroke-width':'1'}));
-      const lb=el('text',{x:cx+BW/2+18,y:y+3,fill:'#8a7aaa','font-size':'7.5','font-weight':'600','font-family':"'DM Sans',sans-serif"});
-      lb.textContent=`Packer · ${fmt(p.depth)}`;pk.appendChild(lb);
+      addLbl('A',y,[{t:`Packer · ${fmt(p.depth)}`,s:7.5,f:'#8a7aaa',w:'600'}],{leader:cx+8,lc:'#8a7aaa'});
     });
     g.appendChild(pk);
   }
@@ -487,16 +658,33 @@ function render(){
     const prg=el('g',{});
     W.perforations.forEach((p,i)=>{
       const y1=d2y(p.top),y2=d2y(p.bottom);
-      const px1=BCX-CW[CW.length-1]/2-3,px2=BCX+CW[CW.length-1]/2+3;
+      const px1=BCX-iw/2-3,px2=BCX+iw/2+3;
       for(let y=y1;y<=y2;y+=4){prg.appendChild(el('line',{x1:px1-6,y1:y,x2:px1,y2:y,stroke:'#ff4444','stroke-width':'1.5','stroke-linecap':'round'}))}
       for(let y=y1;y<=y2;y+=4){prg.appendChild(el('line',{x1:px2,y1:y,x2:px2+6,y2:y,stroke:'#ff4444','stroke-width':'1.5','stroke-linecap':'round'}))}
-      const zr=el('rect',{x:BCX-CW[CW.length-1]/2,y:y1,width:CW[CW.length-1],height:y2-y1,fill:'#ff4444',opacity:'.12',rx:'1','data-t':'perf','data-i':String(i)});
+      const zr=el('rect',{x:BCX-iw/2,y:y1-1,width:iw,height:Math.max(y2-y1,2)+2,fill:'#ff4444',opacity:'.12',rx:'1','data-t':'perf','data-i':String(i)});
       if(edit)zr.style.cursor='ns-resize';
       prg.appendChild(zr);
-      const lb=el('text',{x:BCX+BW/2+18,y:y1+(y2-y1)/2+3,fill:'#ff4444','font-size':'7.5','font-weight':'600','font-family':"'DM Sans',sans-serif"});
-      lb.textContent=`Perfs · ${fmt(p.top)}–${fmt(p.bottom)}`;prg.appendChild(lb);
+      addLbl('A',y1+(y2-y1)/2,[{t:`Perfs · ${fmt(p.top)}–${fmt(p.bottom)}`,s:7.5,f:'#ff4444',w:'600'}],{leader:px2+6,lc:'#ff4444'});
     });
     g.appendChild(prg);
+  }
+
+  // Drill stem tests (bracket on the left wall, faint band across the bore)
+  if(!hid.has('dsts')){
+    const dg=el('g',{});
+    const bx=BCX-BW/2-5;
+    W.dsts.forEach((d,i)=>{
+      const y1=d2y(d.top),hh=Math.max(d2y(d.bottom)-y1,1.5);
+      dg.appendChild(el('rect',{x:BCX-BW/2,y:y1,width:BW,height:hh,fill:'#00b8ff',opacity:'.12','pointer-events':'none'}));
+      dg.appendChild(el('line',{x1:bx,y1:y1,x2:bx,y2:y1+hh,stroke:'#00b8ff','stroke-width':'1.5'}));
+      dg.appendChild(el('line',{x1:bx,y1:y1,x2:bx+4,y2:y1,stroke:'#00b8ff','stroke-width':'1.5'}));
+      dg.appendChild(el('line',{x1:bx,y1:y1+hh,x2:bx+4,y2:y1+hh,stroke:'#00b8ff','stroke-width':'1.5'}));
+      const hit=el('rect',{x:bx-4,y:y1-3,width:10,height:hh+6,fill:'#00b8ff','fill-opacity':'0','data-t':'dst','data-i':String(i)});
+      if(edit)hit.style.cursor='ns-resize';
+      dg.appendChild(hit);
+      addLbl('L',y1+hh/2,[{t:`DST #${d.id} · ${fmtS(d.top)}–${fmtS(d.bottom)}${uN()}`,s:7.5,f:'#00b8ff',w:'600'},{t:trunc(d.recovery||'recovery n/r',50),s:6.5,f:'#3a8aa8'}],{leader:bx-1,lc:'#00b8ff'});
+    });
+    g.appendChild(dg);
   }
 
   // Formations
@@ -504,26 +692,35 @@ function render(){
     const fg=el('g',{});
     W.formations.forEach(f=>{
       const y=d2y(f.depth);
-      fg.appendChild(el('line',{x1:BCX+BW/2+12,y1:y,x2:SW-20,y2:y,stroke:'#e6a817','stroke-width':'.75','stroke-dasharray':'4,3',opacity:'.6'}));
-      const lb=el('text',{x:SW-22,y:y-3,'text-anchor':'end',fill:'#e6a817','font-size':'7.5','font-weight':'500','font-family':"'DM Sans',sans-serif"});lb.textContent=f.name;fg.appendChild(lb);
-      const dl=el('text',{x:SW-22,y:y+7,'text-anchor':'end',fill:'#b88a10','font-size':'6.5','font-family':"'DM Sans',sans-serif"});dl.textContent=fmtS(f.depth)+(unit==='m'?' m':' ft');fg.appendChild(dl);
+      fg.appendChild(el('line',{x1:BCX+BW/2+2,y1:y,x2:BCX+BW/2+9,y2:y,stroke:'#e6a817','stroke-width':'.75',opacity:'.7'}));
+      fg.appendChild(el('line',{x1:RX+86,y1:y,x2:SW-20,y2:y,stroke:'#e6a817','stroke-width':'.75','stroke-dasharray':'4,3',opacity:'.5'}));
+      addLbl('B',y,[{t:f.name,s:7.5,f:'#e6a817',w:'500'},{t:fmtS(f.depth)+uN(),s:6.5,f:'#b88a10'}],{leader:SW-20,lc:'#e6a817'});
     });
     g.appendChild(fg);
   }
 
-  // Surface
+  // Surface + TD
   if(!hid.has('surface')){
     const sg=el('g',{});const sy=d2y(0);
     sg.appendChild(el('line',{x1:BCX-BW/2-10,y1:sy,x2:BCX+BW/2+5,y2:sy,stroke:'#fff','stroke-width':'2.5'}));
-    const sl=el('text',{x:BCX-BW/2-14,y:sy-6,'text-anchor':'end',fill:'#fff','font-size':'8.5','font-weight':'600','font-family':"'Space Grotesk',sans-serif"});sl.textContent='Ground Surface';sg.appendChild(sl);
+    const sl=el('text',{x:LX,y:sy-6,'text-anchor':'end',fill:'#fff','font-size':'8.5','font-weight':'600','font-family':FD});sl.textContent='Ground Surface';sg.appendChild(sl);
     if(W.kbElevation){sg.appendChild(el('polygon',{points:`${AX-15},${sy-5} ${AX-10},${sy} ${AX-15},${sy+5}`,fill:'#f7c948',stroke:'#f7c948','stroke-width':'1'}));
-      const kl=el('text',{x:AX-20,y:sy-8,'text-anchor':'end',fill:'#f7c948','font-size':'7','font-weight':'500','font-family':"'DM Sans',sans-serif"});kl.textContent=`KB ${W.kbElevation}m`;sg.appendChild(kl)}
+      const kl=el('text',{x:AX-20,y:sy-8,'text-anchor':'end',fill:'#f7c948','font-size':'7','font-weight':'500','font-family':FB});kl.textContent=`KB ${fmtS(W.kbElevation)}${uN()}`;sg.appendChild(kl)}
     g.appendChild(sg);
     const ty=d2y(W.totalDepth);
     g.appendChild(el('line',{x1:BCX-BW/2-10,y1:ty,x2:BCX+BW/2+5,y2:ty,stroke:'#ff6b6b','stroke-width':'1','stroke-dasharray':'6,3'}));
-    const tl=el('text',{x:BCX-BW/2-14,y:ty+14,'text-anchor':'end',fill:'#ff6b6b','font-size':'8','font-weight':'600','font-family':"'Space Grotesk',sans-serif"});tl.textContent=`TD — ${fmt(W.totalDepth)}`;g.appendChild(tl);
+    addLbl('L',ty+10,[{t:`TD — ${fmt(W.totalDepth)}`,s:8,f:'#ff6b6b',w:'600',ff:FD}]);
   }
 
+  // Surface cut-off and cap (abandonment)
+  if(!hid.has('surfaceCut')&&W.surfaceCut){
+    const y=d2y(W.surfaceCut.depth),sg2=el('g',{});
+    sg2.appendChild(el('rect',{x:BCX-BW/2-3,y:y-1,width:BW+6,height:3.5,fill:'#c8d0d0',stroke:'#e8f0f0','stroke-width':'.5',rx:'1'}));
+    addLbl('A',y+4,[{t:trunc(W.surfaceCut.label||'Casing cut & capped',56),s:7,f:'#c8d0d0',w:'600'}],{leader:BCX+BW/2+3,lc:'#c8d0d0'});
+    g.appendChild(sg2);
+  }
+
+  drawLbls(g);
   svg.appendChild(g);
   bindEvents();
 }
@@ -596,6 +793,7 @@ function getDepth(t,i){
     case'bridgePlug':return W.bridgePlugs[i].depth;
     case'packer':return W.packers[i].depth;
     case'perf':return(W.perforations[i].top+W.perforations[i].bottom)/2;
+    case'dst':return(W.dsts[i].top+W.dsts[i].bottom)/2;
     default:return 0;
   }
 }
@@ -606,46 +804,47 @@ function setDepth(t,i,d){
     case'bridgePlug':W.bridgePlugs[i].depth=d;break;
     case'packer':W.packers[i].depth=d;break;
     case'perf':{const p=W.perforations[i],h=p.bottom-p.top;p.top=d-h/2;p.bottom=d+h/2;break}
+    case'dst':{const p=W.dsts[i],h=p.bottom-p.top;p.top=d-h/2;p.bottom=d+h/2;break}
   }
 }
 
 // ═══════════════════════════════════════
 // PROPERTY EDITOR
 // ═══════════════════════════════════════
+const ARR={casing:'casings',plug:'plugs',bridgePlug:'bridgePlugs',packer:'packers',perf:'perforations',dst:'dsts'};
+const esc=v=>String(v==null?'':v).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
 function showProps(t,i){
   const d=W;let fields=[],title='';
-  const arr=t==='casing'?'casings':t==='plug'?'plugs':t==='bridgePlug'?'bridgePlugs':t==='packer'?'packers':'perforations';
-  const o=d[arr][i];
+  const o=d[ARR[t]][i];
   switch(t){
-    case'casing':title=o.name;fields=[{k:'name',l:'Name',v:o.name},{k:'od',l:'OD',v:o.od},{k:'grade',l:'Grade',v:o.grade},{k:'weight',l:'Weight',v:o.weight},{k:'top',l:'Top (m)',v:o.top,n:1},{k:'shoe',l:'Shoe (m)',v:o.shoe,n:1},{k:'cementTop',l:'Cement Top (m)',v:o.cementTop,n:1}];break;
-    case'plug':title=`Plug #${o.id}`;fields=[{k:'id',l:'ID',v:o.id,n:1},{k:'top',l:'Top (m)',v:o.top,n:1},{k:'bottom',l:'Bottom (m)',v:o.bottom,n:1},{k:'sacks',l:'Sacks',v:o.sacks,n:1},{k:'additive',l:'Additive',v:o.additive},{k:'notes',l:'Notes',v:o.notes,a:1}];break;
+    case'casing':title=o.name;fields=[{k:'name',l:'Name',v:o.name},{k:'od',l:'OD',v:o.od},{k:'grade',l:'Grade',v:o.grade},{k:'weight',l:'Weight',v:o.weight},{k:'top',l:'Top (m)',v:o.top,n:1},{k:'shoe',l:'Shoe (m)',v:o.shoe,n:1},{k:'cementTop',l:'Cement Top (m)',v:o.cementTop,n:1},{k:'cement',l:'Cement',v:o.cement||''}];break;
+    case'plug':title=`Plug #${o.id}`;fields=[{k:'id',l:'ID',v:o.id,n:1},{k:'bottom',l:'Top (m)',v:o.bottom,n:1},{k:'top',l:'Base (m)',v:o.top,n:1},{k:'sacks',l:'Sacks',v:o.sacks==null?'':o.sacks,n:1},{k:'additive',l:'Additive',v:o.additive},{k:'date',l:'Date',v:o.date||''},{k:'notes',l:'Notes',v:o.notes,a:1}];break;
     case'bridgePlug':title='Bridge Plug';fields=[{k:'depth',l:'Depth (m)',v:o.depth,n:1},{k:'type',l:'Type',v:o.type}];break;
     case'packer':title='Packer';fields=[{k:'depth',l:'Depth (m)',v:o.depth,n:1},{k:'type',l:'Type',v:o.type}];break;
-    case'perf':title='Perforation';fields=[{k:'top',l:'Top (m)',v:o.top,n:1},{k:'bottom',l:'Bottom (m)',v:o.bottom,n:1}];break;
+    case'perf':title='Perforation';fields=[{k:'top',l:'Top (m)',v:o.top,n:1},{k:'bottom',l:'Bottom (m)',v:o.bottom,n:1},{k:'notes',l:'Notes',v:o.notes||'',a:1}];break;
+    case'dst':title=`DST #${o.id}`;fields=[{k:'id',l:'ID',v:o.id,n:1},{k:'top',l:'Top (m)',v:o.top,n:1},{k:'bottom',l:'Bottom (m)',v:o.bottom,n:1},{k:'recovery',l:'Recovery',v:o.recovery||''},{k:'notes',l:'Notes',v:o.notes||'',a:1}];break;
   }
   document.getElementById('ptitle').textContent='✎ '+title;
   document.getElementById('pfields').innerHTML=fields.map(f=>{
-    if(f.a)return`<div class="pf"><label>${f.l}</label><textarea onchange="updProp('${t}',${i},'${f.k}',this.value)">${f.v||''}</textarea></div>`;
-    if(f.n)return`<div class="pf"><label>${f.l}</label><input type="number" step="any" value="${f.v}" onchange="updProp('${t}',${i},'${f.k}',this.value)"></div>`;
-    return`<div class="pf"><label>${f.l}</label><input type="text" value="${f.v||''}" onchange="updProp('${t}',${i},'${f.k}',this.value)"></div>`;
+    if(f.a)return`<div class="pf"><label>${f.l}</label><textarea onchange="updProp('${t}',${i},'${f.k}',this.value)">${esc(f.v)}</textarea></div>`;
+    if(f.n)return`<div class="pf"><label>${f.l}</label><input type="number" step="any" value="${esc(f.v)}" onchange="updProp('${t}',${i},'${f.k}',this.value)"></div>`;
+    return`<div class="pf"><label>${f.l}</label><input type="text" value="${esc(f.v)}" onchange="updProp('${t}',${i},'${f.k}',this.value)"></div>`;
   }).join('');
   document.getElementById('pacts').innerHTML=`<button class="pab del" onclick="delObj('${t}',${i})">✕ Delete</button><button class="pab" onclick="dupObj('${t}',${i})">⧉ Duplicate</button>`;
 }
 
 function updProp(t,i,k,v){
-  const arr=t==='casing'?'casings':t==='plug'?'plugs':t==='bridgePlug'?'bridgePlugs':t==='packer'?'packers':'perforations';
-  const o=W[arr][i];
+  const o=W[ARR[t]][i];
   o[k]=['top','bottom','shoe','depth','cementTop','sacks','id'].includes(k)?parseFloat(v)||0:v;
   saveW();render();renderStats();showProps(t,i);
 }
 
 function delObj(t,i){
-  const arr=t==='casing'?'casings':t==='plug'?'plugs':t==='bridgePlug'?'bridgePlugs':t==='packer'?'packers':'perforations';
-  W[arr].splice(i,1);deselect();saveW();render();renderStats();renderCmgr();
+  W[ARR[t]].splice(i,1);deselect();saveW();render();renderStats();renderCmgr();
 }
 
 function dupObj(t,i){
-  const arr=t==='casing'?'casings':t==='plug'?'plugs':t==='bridgePlug'?'bridgePlugs':t==='packer'?'packers':'perforations';
+  const arr=ARR[t];
   const c=JSON.parse(JSON.stringify(W[arr][i]));
   if(c.depth!=undefined)c.depth+=50;if(c.top!=undefined){c.top+=20;c.bottom+=20}
   if(c.shoe!=undefined)c.shoe+=50;
@@ -671,7 +870,8 @@ function renderCmgr(){
     {l:'Cement Plugs',t:'plug',c:'#2d7a4f',items:d.plugs.map((p,i)=>({n:`Plug #${p.id}`,d:fmtS(p.top)+(unit==='m'?' m':' ft'),i}))},
     {l:'Bridge Plugs',t:'bridgePlug',c:'#cc6600',items:d.bridgePlugs.map((bp,i)=>({n:bp.type,d:fmtS(bp.depth)+(unit==='m'?' m':' ft'),i}))},
     {l:'Packers',t:'packer',c:'#6a5a8a',items:d.packers.map((p,i)=>({n:p.type,d:fmtS(p.depth)+(unit==='m'?' m':' ft'),i}))},
-    {l:'Perforations',t:'perf',c:'#ff4444',items:d.perforations.map((p,i)=>({n:`${fmtS(p.top)}–${fmtS(p.bottom)}m`,d:'',i}))},
+    {l:'Perforations',t:'perf',c:'#ff4444',items:d.perforations.map((p,i)=>({n:`${fmtS(p.top)}–${fmtS(p.bottom)}${uN()}`,d:'',i}))},
+    {l:'DSTs',t:'dst',c:'#00b8ff',items:d.dsts.map((x,i)=>({n:`DST #${x.id}`,d:`${fmtS(x.top)}–${fmtS(x.bottom)}${uN()}`,i}))},
     {l:'Formations',t:'formation',c:'#e6a817',items:d.formations.map((f,i)=>({n:f.name,d:fmtS(f.depth)+(unit==='m'?' m':' ft'),i}))}
   ];
   document.getElementById('chint').textContent=edit?'(click to edit · drag to move)':'';
@@ -705,6 +905,7 @@ function addObj(t){
     case'bridgePlug':d.bridgePlugs.push({depth:d.totalDepth*.9,type:'Wireline Set'});break;
     case'packer':d.packers.push({depth:d.totalDepth*.85,type:'Production Packer'});break;
     case'perf':d.perforations.push({top:d.totalDepth*.9,bottom:d.totalDepth*.95});break;
+    case'dst':d.dsts.push({id:d.dsts.length+1,top:d.totalDepth*.5,bottom:d.totalDepth*.5+10,recovery:'',notes:''});break;
   }
   saveW();render();renderStats();renderCmgr();renderFmgr();
 }
@@ -719,7 +920,7 @@ function renderFmgr(){
   fs.forEach((f,i)=>{
     html+=`<div class="frow" data-fi="${i}">
       <div class="fm" style="background:#e6a817" title="Drag to reorder"></div>
-      <div class="fn"><input type="text" value="${f.name}" onchange="updForm(${i},'name',this.value)" placeholder="Formation name"></div>
+      <div class="fn"><input type="text" value="${esc(f.name)}" onchange="updForm(${i},'name',this.value)" placeholder="Formation name"></div>
       <div class="fd"><input type="number" step="any" value="${f.depth}" onchange="updForm(${i},'depth',this.value)" title="Depth"></div>
       <div class="fu">${unit==='m'?'m':'ft'}</div>
       <button class="fb dup" onclick="dupForm(${i})" title="Duplicate">⧉</button>
@@ -835,11 +1036,12 @@ function startFdrag(e,row){
 // ═══════════════════════════════════════
 function tipData(t,i){
   switch(t){
-    case'casing':{const c=W.casings[i];return{t:c.name,b:[['Depth',`${fmt(c.top)} – ${fmt(c.shoe)}`],['OD',c.od],['Grade',c.grade],['Weight',c.weight],['Cement Top',c.cementTop>0?fmt(c.cementTop):'Shoe only']],n:null}}
-    case'plug':{const p=W.plugs[i];return{t:`Plug #${p.id}`,b:[['Top',fmt(p.top)],['Bottom',fmt(p.bottom)],['Length',fmt(p.top-p.bottom)],['Sacks',p.sacks+' sacks'],['Additive',p.additive]],n:p.notes||null}}
+    case'casing':{const c=W.casings[i];const b=[['Depth',`${fmt(c.top)} – ${fmt(c.shoe)}`],['OD',c.od],['Grade',c.grade],['Weight',c.weight],['Cement Top',c.cementTop>0?fmt(c.cementTop)+(c.cementEst?' (est.)':''):'To surface']];if(c.cement)b.push(['Cement',c.cement]);return{t:c.name,b,n:null}}
+    case'plug':{const p=W.plugs[i];const b=[['Top',fmt(p.bottom)],['Base',fmt(p.top)],['Length',fmt(p.top-p.bottom)],['Sacks',p.sacks?p.sacks+' sacks':'not recorded'],['Additive',p.additive||'—']];if(p.date)b.push(['Date',p.date]);return{t:`Plug #${p.id}`,b,n:p.notes||null}}
     case'bridgePlug':{const bp=W.bridgePlugs[i];return{t:'Bridge Plug',b:[['Depth',fmt(bp.depth)],['Type',bp.type]],n:null}}
     case'packer':{const pk=W.packers[i];return{t:'Packer',b:[['Depth',fmt(pk.depth)],['Type',pk.type]],n:null}}
-    case'perf':{const p=W.perforations[i];return{t:'Perforation',b:[['Top',fmt(p.top)],['Bottom',fmt(p.bottom)],['Length',fmt(p.bottom-p.top)]],n:null}}
+    case'perf':{const p=W.perforations[i];return{t:'Perforation',b:[['Top',fmt(p.top)],['Bottom',fmt(p.bottom)],['Length',fmt(p.bottom-p.top)]],n:p.notes||null}}
+    case'dst':{const d=W.dsts[i];return{t:`DST #${d.id}`,b:[['Interval',`${fmt(d.top)} – ${fmt(d.bottom)}`],['Length',fmt(d.bottom-d.top)],['Recovery',d.recovery||'not recorded']],n:d.notes||null}}
     default:return{t:'',b:[]}
   }
 }
@@ -858,7 +1060,7 @@ function showDetail(t,r,n){
 // LEGEND
 // ═══════════════════════════════════════
 function renderLeg(){
-  const ss=[{l:'Construction',items:[{id:'surface',label:'Ground Surface',c:'#fff',t:'ln'},{id:'casings',label:'Steel Casing',c:'#8a9a9a',t:'box'},{id:'cement',label:'Cement',c:'#4a9ebb',t:'box'},{id:'openHole',label:'Open Hole',c:'#8b6914',t:'box'}]},{l:'Abandonment',items:[{id:'plugs',label:'Cement Plugs',c:'#2d7a4f',t:'box'},{id:'bridgePlugs',label:'Bridge Plug',c:'#cc6600',t:'dm'},{id:'packers',label:'Packer',c:'#6a5a8a',t:'dm'}]},{l:'Completion',items:[{id:'perforations',label:'Perforations',c:'#ff4444',t:'dd'},{id:'formations',label:'Formation Tops',c:'#e6a817',t:'da'}]}];
+  const ss=[{l:'Construction',items:[{id:'surface',label:'Ground Surface',c:'#fff',t:'ln'},{id:'casings',label:'Steel Casing',c:'#8a9a9a',t:'box'},{id:'cement',label:'Cement',c:'#4a9ebb',t:'box'},{id:'openHole',label:'Open Hole',c:'#8b6914',t:'box'}]},{l:'Abandonment',items:[{id:'plugs',label:'Cement Plugs',c:'#2d7a4f',t:'box'},{id:'bridgePlugs',label:'Bridge Plug',c:'#cc6600',t:'dm'},{id:'packers',label:'Packer',c:'#6a5a8a',t:'dm'},{id:'surfaceCut',label:'Surface Cut & Cap',c:'#c8d0d0',t:'box'}]},{l:'Completion & Testing',items:[{id:'perforations',label:'Perforations',c:'#ff4444',t:'dd'},{id:'dsts',label:'DST Interval',c:'#00b8ff',t:'br'},{id:'formations',label:'Formation Tops',c:'#e6a817',t:'da'}]}];
   document.getElementById('leg').innerHTML=ss.map(s=>{
     const items=s.items.map(it=>{
       const dm=hid.has(it.id)?' dim':'';
@@ -867,6 +1069,7 @@ function renderLeg(){
       else if(it.t==='da')sw=`<div class="leg-s da" style="border-color:${it.c}"></div>`;
       else if(it.t==='dm')sw=`<div class="leg-s dm" style="background:${it.c}"></div>`;
       else if(it.t==='dd')sw=`<div class="leg-s dd" style="color:${it.c}"></div>`;
+      else if(it.t==='br')sw=`<div class="leg-s br" style="border-color:${it.c}"></div>`;
       else sw=`<div class="leg-s" style="background:${it.c}"></div>`;
       return`<div class="leg-i${dm}" onclick="togLeg('${it.id}')">${sw}<span class="leg-l">${it.label}</span></div>`;
     }).join('');
@@ -876,16 +1079,46 @@ function renderLeg(){
 function togLeg(id){if(hid.has(id))hid.delete(id);else hid.add(id);renderLeg();render()}
 
 // ═══════════════════════════════════════
-// MULTI-WELL
+// MULTI-WELL + TABS
+// Workspace wells persist in localStorage. Legacy wells come from LEGACY_WELLS;
+// edits to them last for the session only unless copied into the workspace.
 // ═══════════════════════════════════════
-const SK='wbs-wells';let wells=[],ci=0;
-function saveW(){try{localStorage.setItem(SK,JSON.stringify(wells))}catch(e){}}
-function loadWs(){try{const r=localStorage.getItem(SK);if(r){wells=JSON.parse(r);return}}catch(e){}wells=[JSON.parse(JSON.stringify(DW))]}
-function popSel(){document.getElementById('wsel').innerHTML=wells.map((w,i)=>`<option value="${i}"${i===ci?' selected':''}>${w.wellName||'Well '+(i+1)}</option>`).join('')}
-function loadWell(i){ci=+i;W=JSON.parse(JSON.stringify(wells[ci]));deselect();render();renderLeg();renderStats();renderCmgr();renderFmgr();updHdr()}
-function addWell(){const nw=JSON.parse(JSON.stringify(DW));nw.wellId='W'+String(wells.length+1).padStart(3,'0');nw.wellName='New Well '+(wells.length+1);nw.casings=[];nw.plugs=[];nw.bridgePlugs=[];nw.packers=[];nw.perforations=[];nw.formations=[];wells.push(nw);ci=wells.length-1;W=JSON.parse(JSON.stringify(nw));saveW();popSel();deselect();render();renderLeg();renderStats();renderCmgr();renderFmgr();updHdr()}
-function delWell(){if(wells.length<=1)return;if(!confirm('Delete?'))return;wells.splice(ci,1);ci=Math.min(ci,wells.length-1);W=JSON.parse(JSON.stringify(wells[ci]));saveW();popSel();deselect();render();renderLeg();renderStats();renderCmgr();renderFmgr();updHdr()}
-function updHdr(){document.getElementById('wname').innerHTML=`${W.wellName} <span id="wop">— ${W.operator}</span>`}
+const SK='wbs-wells';let wells=[],legacy=[],tab='workspace',wci=0,lci=0,ci=0;
+function norm(w){['casings','plugs','bridgePlugs','packers','perforations','dsts','formations','dataNotes'].forEach(k=>{if(!Array.isArray(w[k]))w[k]=[]});return w}
+function list(){return tab==='legacy'?legacy:wells}
+function saveW(){list()[ci]=JSON.parse(JSON.stringify(W));if(tab==='legacy')return;try{localStorage.setItem(SK,JSON.stringify(wells))}catch(e){}}
+function loadWs(){try{const r=localStorage.getItem(SK);if(r){wells=JSON.parse(r).map(norm);if(wells.length)return}}catch(e){}wells=[norm(JSON.parse(JSON.stringify(DW)))]}
+function popSel(){document.getElementById('wsel').innerHTML=list().map((w,i)=>`<option value="${i}"${i===ci?' selected':''}>${esc(w.wellName||'Well '+(i+1))}</option>`).join('')}
+function loadWell(i){ci=Math.max(0,Math.min(list().length-1,+i||0));if(tab==='legacy')lci=ci;else wci=ci;W=norm(JSON.parse(JSON.stringify(list()[ci])));deselect();refresh()}
+function refresh(){updHdr();popSel();renderChips();renderRecord();render();renderLeg();renderStats();renderCmgr();renderFmgr();updHash()}
+function tabUI(){
+  const lg=tab==='legacy';
+  document.getElementById('tab-workspace').classList.toggle('on',!lg);
+  document.getElementById('tab-legacy').classList.toggle('on',lg);
+  document.getElementById('wsbtns').style.display=lg?'none':'';
+  document.getElementById('cpbtn').style.display=lg?'':'none';
+  document.getElementById('shint').textContent=lg?'Built-in dataset · edits last this session only':'Values editable · auto-saves';
+}
+function setTab(t){if(t!==tab){tab=t;tabUI();if(t==='legacy')applyUnit('ft')}loadWell(t==='legacy'?lci:wci)}
+function renderChips(){
+  const c=document.getElementById('chips');
+  if(tab!=='legacy'){c.innerHTML='';return}
+  c.innerHTML=legacy.map((w,i)=>`<button class="chip${i===ci?' on':''}" onclick="loadWell(${i})" title="${esc(w.operator)}"><b>${esc(w.wellId)}</b>${esc(w.wellName)}</button>`).join('');
+}
+function renderRecord(){
+  const p=document.getElementById('rpnl'),r=W.record||[],n=W.dataNotes||[];
+  if(!r.length&&!n.length){p.style.display='none';return}
+  p.style.display='';
+  document.getElementById('rhint').textContent=tab==='legacy'?'(as recorded)':'';
+  document.getElementById('rrows').innerHTML=r.map(x=>`<div class="rr"><span class="rl">${esc(x[0])}</span><span class="rv">${esc(x[1])}</span></div>`).join('');
+  document.getElementById('dnt').style.display=n.length?'':'none';
+  document.getElementById('dnotes').innerHTML=n.map(x=>`<li>${esc(x)}</li>`).join('');
+}
+function addWell(){if(tab==='legacy')return;const nw=norm(JSON.parse(JSON.stringify(DW)));nw.wellId='W'+String(wells.length+1).padStart(3,'0');nw.wellName='New Well '+(wells.length+1);nw.casings=[];nw.plugs=[];nw.bridgePlugs=[];nw.packers=[];nw.perforations=[];nw.dsts=[];nw.formations=[];wells.push(nw);try{localStorage.setItem(SK,JSON.stringify(wells))}catch(e){}loadWell(wells.length-1)}
+function delWell(){if(tab==='legacy'||wells.length<=1)return;if(!confirm('Delete?'))return;wells.splice(ci,1);try{localStorage.setItem(SK,JSON.stringify(wells))}catch(e){}loadWell(Math.min(ci,wells.length-1))}
+function copyToWorkspace(){const c=JSON.parse(JSON.stringify(W));c.wellId=c.wellId+'-WS';wells.push(c);try{localStorage.setItem(SK,JSON.stringify(wells))}catch(e){}tab='workspace';tabUI();loadWell(wells.length-1)}
+function updHdr(){document.getElementById('wname').innerHTML=`${esc(W.wellName)} <span id="wop">— ${esc(W.operator)}</span>`}
+function updHash(){try{history.replaceState(null,'',location.pathname+location.search+(tab==='legacy'?'#legacy-'+(ci+1):''))}catch(e){}}
 
 // ═══════════════════════════════════════
 // STATISTICS
@@ -895,8 +1128,8 @@ function renderStats(){
   const tp=d.plugs.reduce((s,p)=>s+(p.top-p.bottom),0);
   const pc=d.totalDepth>0?((tp/d.totalDepth)*100).toFixed(1):'0.0';
   const oh=d.casings.length>0?d.totalDepth-d.casings[d.casings.length-1].shoe:d.totalDepth;
-  const dp=d.plugs.length>0?Math.max(...d.plugs.map(p=>p.bottom)):0;
-  const sp=d.plugs.length>0?Math.min(...d.plugs.map(p=>p.top)):0;
+  const dp=d.plugs.length>0?Math.max(...d.plugs.map(p=>p.top)):0;
+  const sp=d.plugs.length>0?Math.min(...d.plugs.map(p=>p.bottom)):0;
   const lp=d.plugs.length>0?Math.max(...d.plugs.map(p=>p.top-p.bottom)):0;
   const fs=[
     {k:'wellId',l:'Well ID',v:d.wellId,t:'text'},
@@ -908,12 +1141,12 @@ function renderStats(){
     {s:'Plug Analysis'},
     {r:'Deepest Plug',v:d.plugs.length>0?fmt(dp):'—'},{r:'Shallowest Plug',v:d.plugs.length>0?fmt(sp):'—'},{r:'Longest Plug',v:d.plugs.length>0?fmt(lp):'—'},
     {r:'Total Plugged',v:fmt(tp)},{r:'Coverage',v:pc+'%'},{r:'Open Hole',v:fmt(oh)},
-    {s:'Completion'},{r:'Perforations',v:d.perforations.length},{r:'Formations',v:d.formations.length}
+    {s:'Completion & Testing'},{r:'Perforations',v:d.perforations.length},{r:'DST Intervals',v:d.dsts.length},{r:'Formations',v:d.formations.length}
   ];
   document.getElementById('stats').innerHTML=fs.map(f=>{
     if(f.s)return`<div class="ssec">${f.s}</div>`;
     if(f.r)return`<div class="sr"><span class="sl">${f.r}</span><span class="sv">${f.v}</span></div>`;
-    return`<div class="sr"><span class="sl">${f.l}</span><input class="si${f.t==='text'?' si-t':''}" type="${f.t}" value="${f.v}" onchange="updStat('${f.k}',this.value)" onfocus="this.select()"></div>`;
+    return`<div class="sr"><span class="sl">${f.l}</span><input class="si${f.t==='text'?' si-t':''}" type="${f.t}" value="${esc(f.v)}" onchange="updStat('${f.k}',this.value)" onfocus="this.select()"></div>`;
   }).join('');
 }
 function updStat(k,v){
@@ -921,7 +1154,7 @@ function updStat(k,v){
   else if(k==='operator'){W.operator=v;updHdr()}
   else if(k==='totalDepth')W.totalDepth=Math.max(1,parseFloat(v)||1000);
   else if(k==='kbElevation')W.kbElevation=v?parseFloat(v):null;
-  wells[ci]=JSON.parse(JSON.stringify(W));saveW();render();renderStats();renderCmgr();renderFmgr();
+  saveW();render();renderStats();renderCmgr();renderFmgr();
 }
 
 // ═══════════════════════════════════════
@@ -962,7 +1195,8 @@ function jumpTo(){
   py=-(y-ch/2)*sc+ch/2;updT();
 }
 
-function setUnit(u){unit=u;document.getElementById('bm').classList.toggle('on',u==='m');document.getElementById('bf').classList.toggle('on',u==='ft');render();renderStats();renderCmgr()}
+function applyUnit(u){unit=u;document.getElementById('bm').classList.toggle('on',u==='m');document.getElementById('bf').classList.toggle('on',u==='ft')}
+function setUnit(u){applyUnit(u);render();renderStats();renderCmgr()}
 
 // ═══════════════════════════════════════
 // EXPORT
@@ -1021,6 +1255,8 @@ function expSVG(){
     if(fill==='#fff')t.setAttribute('fill','#000000');
     if(fill==='#e6a817')t.setAttribute('fill','#b8860b');
     if(fill==='#b88a10')t.setAttribute('fill','#8b6914');
+    if(fill==='#00b8ff'||fill==='#3a8aa8')t.setAttribute('fill','#0277bd');
+    if(fill==='#c8d0d0')t.setAttribute('fill','#555555');
   });
   // Fix line colors
   clone.querySelectorAll('line').forEach(l=>{
@@ -1029,6 +1265,8 @@ function expSVG(){
     if(stroke==='#6a8a8a')l.setAttribute('stroke','#777777');
     if(stroke==='#fff')l.setAttribute('stroke','#000000');
     if(stroke==='#ff6b6b')l.setAttribute('stroke','#cc0000');
+    if(stroke==='#00b8ff')l.setAttribute('stroke','#0277bd');
+    if(stroke==='#c8d0d0')l.setAttribute('stroke','#777777');
   });
   const sd=new XMLSerializer().serializeToString(clone);
   const b=new Blob([sd],{type:'image/svg+xml;charset=utf-8'});
@@ -1069,6 +1307,8 @@ window.addEventListener('beforeprint',()=>{
     if(f==='#8a7aaa'){printColors.push({el:t,fill:f});t.setAttribute('fill','#6a5a8a')}
     if(f==='#ff4444'){printColors.push({el:t,fill:f});t.setAttribute('fill','#cc0000')}
     if(f==='#3a8a5a'||f==='#2d6a4f'){printColors.push({el:t,fill:f});t.setAttribute('fill','#1b5e20')}
+    if(f==='#00b8ff'||f==='#3a8aa8'){printColors.push({el:t,fill:f});t.setAttribute('fill','#0277bd')}
+    if(f==='#c8d0d0'){printColors.push({el:t,fill:f});t.setAttribute('fill','#555555')}
   });
   svg.querySelectorAll('line').forEach(l=>{
     const s=l.getAttribute('stroke');
@@ -1077,6 +1317,8 @@ window.addEventListener('beforeprint',()=>{
     if(s==='#fff'||s==='#ffffff'){printColors.push({el:l,stroke:s});l.setAttribute('stroke','#000000')}
     if(s==='#ff6b6b'){printColors.push({el:l,stroke:s});l.setAttribute('stroke','#cc0000')}
     if(s==='#4a9ebb'){printColors.push({el:l,stroke:s});l.setAttribute('stroke','#2196f3')}
+    if(s==='#00b8ff'){printColors.push({el:l,stroke:s});l.setAttribute('stroke','#0277bd')}
+    if(s==='#c8d0d0'){printColors.push({el:l,stroke:s});l.setAttribute('stroke','#777777')}
   });
   svg.querySelectorAll('rect,polygon').forEach(r=>{
     const f=r.getAttribute('fill');
@@ -1088,6 +1330,7 @@ window.addEventListener('beforeprint',()=>{
       if(f==='#6a5a8a'){printColors.push({el:r,fill:f});r.setAttribute('fill','#9575cd')}
       if(f==='#ff4444'){printColors.push({el:r,fill:f});r.setAttribute('fill','#ef9a9a')}
       if(f==='#0a1414'){printColors.push({el:r,fill:f});r.setAttribute('fill','#f5f5f5')}
+      if(f==='#c8d0d0'){printColors.push({el:r,fill:f});r.setAttribute('fill','#9e9e9e')}
       if(f==='url(#ohP)'){printColors.push({el:r,fill:f});r.setAttribute('fill','#d7ccc8')}
     }
   });
@@ -1110,8 +1353,10 @@ window.addEventListener('afterprint',()=>{
 // ═══════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════
-loadWs();W=JSON.parse(JSON.stringify(wells[0]));ci=0;
-updHdr();popSel();render();renderLeg();renderStats();renderCmgr();renderFmgr();initZP();
+loadWs();legacy=LEGACY_WELLS.map(w=>norm(JSON.parse(JSON.stringify(w))));
+const hm=location.hash.match(/^#legacy(?:-(\d+))?$/);
+if(hm){tab='legacy';lci=Math.max(0,Math.min(legacy.length-1,(+hm[1]||1)-1));applyUnit('ft')}
+tabUI();loadWell(tab==='legacy'?lci:wci);initZP();
 </script>
 </body>
 </html>
